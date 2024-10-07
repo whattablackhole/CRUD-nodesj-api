@@ -1,2 +1,8 @@
+import App from "./app.js";
+import DataBase from "./database/db.js";
 
-console.log("hello");
+const app = new App();
+const db = new DataBase();
+
+app.serve();
+db.serve();

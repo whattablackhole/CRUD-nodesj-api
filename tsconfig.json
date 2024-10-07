@@ -1,12 +1,14 @@
 {
     "compilerOptions": {
-      "module": "ES6",
+      "module": "esnext",
+      "target": "ES6",
       "noImplicitAny": true,
       "removeComments": true,
       "preserveConstEnums": true,
       "sourceMap": true,
       "declaration": true,
       "moduleResolution": "node",
+      "allowSyntheticDefaultImports": true,
       "outDir": "./dist",
       "rootDir": "."
     },
