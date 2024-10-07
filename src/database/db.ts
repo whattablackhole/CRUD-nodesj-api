@@ -1,0 +1,8 @@
+class DataBase {
+
+    public init() {
+
+    }
+
+    
+}
