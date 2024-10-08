@@ -3,31 +3,38 @@ import { Socket } from "node:net";
 export default class DbClient {
   private connection: Socket;
 
-  public connect(host: string, port: number) {
-    const client = new Socket();
+  public async connect(host: string, port: number) {
+    return new Promise<void>((resolve, reject) => {
+      const client = new Socket();
+      this.connection = client.connect(port, host);
 
-    client.connect(port, host, () => {
-      console.log("Connected to server");
-      this.connection = client;
-    });
+      this.connection.once("error", (err) => {
+        console.error("Connection error:", err);
+        reject(err);
+      });
 
-    client.on("data", (data: any) => {
-      console.log("Received from server: " + data.toString());
-    });
-
-    client.on("close", () => {
-      this.connection = null;
-      console.log("Connection closed");
-    });
-
-    client.on("error", (err: any) => {
-      this.connection = null;
-      console.error("Client error:", err);
+      this.connection.once("connect", () => {
+        console.log("Connected to server");
+        this.connection.removeAllListeners();
+        resolve();
+      });
     });
   }
 
-  public hSet(key: string, value: unknown) {
-    // parse
+  public async hSet(key: string, value: unknown) {
+    return await new Promise((resolve, reject) => {
+      this.connection.write(
+        JSON.stringify({ method: "hSet", key, value }),
+        (err) => {
+          if (err) {
+            reject(err);
+          }
+        }
+      );
+      this.connection.once("data", (data) => {
+        resolve(data);
+      });
+    });
   }
 
   public hGet(key: string) {
