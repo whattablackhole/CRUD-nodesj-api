@@ -1,6 +1,6 @@
 import App from "./app.js";
 import UserController from "./controllers/user.controller.js";
-import DataBase from "./database/db.js";
+import DataBase from "./database/server.js";
 import UserRouter from "./routers/user.router.js";
 
 const app = new App();

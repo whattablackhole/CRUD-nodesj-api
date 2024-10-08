@@ -1,0 +1,1 @@
+export type Validator<T> = (obj: any) => obj is T;

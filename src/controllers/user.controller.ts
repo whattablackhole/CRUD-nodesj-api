@@ -1,8 +1,14 @@
-import httpMeta from "../decorators/http.js";
+import httpMeta, { httpBody } from "../decorators/http.js";
+import { UserCreate } from "../schemas/user.schemas.js";
+import { isCreateUserValidator } from "../validators/user.validator.js";
 
 export default class UserController {
+
   @httpMeta("POST", "")
-  public createUser() {
+  @httpBody<UserCreate>(isCreateUserValidator)
+  public createUser(user: UserCreate) {
+    console.log(user);
+    return "Ok";
   }
 
   @httpMeta("DELETE", "/{uuid}")

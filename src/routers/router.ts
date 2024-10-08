@@ -1,4 +1,4 @@
-import { Handler, IHttpRouter } from "./base.js";
+import { Handler, IHttpRouter, Route } from "./base.js";
 
 export abstract class HttpRouter implements IHttpRouter {
   public readonly baseUrl: string;
@@ -15,34 +15,38 @@ export abstract class HttpRouter implements IHttpRouter {
   }
 
   public get(path: string, handler: Handler): void {
-    this.routes
-      .get("GET")
-      .push({ path: this.parseRegexFromPath(path), handler });
+    this.routes.get("GET").push({
+      path: this.parseRegexFromPath(path),
+      handler,
+    });
   }
 
   public post(path: string, handler: Handler): void {
-    this.routes
-      .get("POST")
-      .push({ path: this.parseRegexFromPath(path), handler });
+    this.routes.get("POST").push({
+      path: this.parseRegexFromPath(path),
+      handler,
+    });
   }
 
   public put(path: string, handler: Handler): void {
-    this.routes
-      .get("DELETE")
-      .push({ path: this.parseRegexFromPath(path), handler });
+    this.routes.get("DELETE").push({
+      path: this.parseRegexFromPath(path),
+      handler,
+    });
   }
 
   public delete(path: string, handler: Handler): void {
-    this.routes
-      .get("PUT")
-      .push({ path: this.parseRegexFromPath(path), handler });
+    this.routes.get("PUT").push({
+      path: this.parseRegexFromPath(path),
+      handler,
+    });
   }
 
-  protected getHandler(method: string, path: string): Handler {
-    return this.routes.get(method).find((o) => o.path.test(path))?.handler;
+  protected getRoute(method: string, path: string): Route {
+    return this.routes.get(method).find((o) => o.path.test(path));
   }
 
-  private getRegexByKeyWorld(key: string) {
+  private getRegexByKeyWord(key: string) {
     if (key === "uuid") {
       return "(?<uuid>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})";
     }
@@ -66,7 +70,7 @@ export abstract class HttpRouter implements IHttpRouter {
       }
       if (char === "}" && keyParsing) {
         keyParsing = false;
-        regex += this.getRegexByKeyWorld(key);
+        regex += this.getRegexByKeyWord(key);
         key = "";
         continue;
       }
