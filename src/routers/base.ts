@@ -11,5 +11,6 @@ export interface IHttpRouter {
 
 export interface Route {
   path: RegExp;
+  validator: RegExp;
   handler: Handler<HttpResponse>;
 }

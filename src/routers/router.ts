@@ -8,7 +8,7 @@ export class HttpRouter implements IHttpRouter {
 
   protected routes = new Map<
     string,
-    { path: RegExp; handler: Handler<HttpResponse> }[]
+    Route[]
   >([
     ["GET", []],
     ["POST", []],
@@ -24,6 +24,7 @@ export class HttpRouter implements IHttpRouter {
   public get(path: string, handler: Handler): void {
     this.routes.get("GET").push({
       path: this.parseRegexFromPath(path),
+      validator: this.parsePathValidator(path),
       handler,
     });
   }
@@ -31,6 +32,7 @@ export class HttpRouter implements IHttpRouter {
   public post(path: string, handler: Handler): void {
     this.routes.get("POST").push({
       path: this.parseRegexFromPath(path),
+      validator: this.parsePathValidator(path),
       handler,
     });
   }
@@ -38,6 +40,7 @@ export class HttpRouter implements IHttpRouter {
   public put(path: string, handler: Handler): void {
     this.routes.get("DELETE").push({
       path: this.parseRegexFromPath(path),
+      validator: this.parsePathValidator(path),
       handler,
     });
   }
@@ -45,6 +48,7 @@ export class HttpRouter implements IHttpRouter {
   public delete(path: string, handler: Handler): void {
     this.routes.get("PUT").push({
       path: this.parseRegexFromPath(path),
+      validator: this.parsePathValidator(path),
       handler,
     });
   }
@@ -69,7 +73,7 @@ export class HttpRouter implements IHttpRouter {
     let key = "";
     let keyParsing = false;
 
-    for (let char of path) {
+    for (const char of path) {
       if (char === "/") {
         regex += "\\/";
       } else if (char === "{") {
@@ -88,6 +92,25 @@ export class HttpRouter implements IHttpRouter {
     return new RegExp(regex);
   }
 
+  protected parsePathValidator(path: string): RegExp {
+    let regex = "^";
+    let placeholder = false;
+
+    for (const char of path) {
+      if (char === "{") {
+        placeholder = true;
+        regex += "([^\\/]+?)";
+      } else if (char === "}") {
+        placeholder = false;
+      } else {
+        regex += placeholder ? "" : char === "/" ? "\\/" : char;
+      }
+    }
+
+    regex += "$";
+    return new RegExp(regex);
+  }
+
   private basePattern: RegExp;
 
   public match(path: string): boolean {
@@ -100,12 +123,16 @@ export class HttpRouter implements IHttpRouter {
     const route = this.getRoute(req.method, strippedUrl);
 
     if (!route) {
-      return new HttpResponse(400, `Invalid resource identifier: ${req.url}.`);
+      return new HttpResponse(404, `No resource for provided path: ${req.url}`);
     }
 
-    const params = route.path.exec(strippedUrl).groups;
+    const result = route.validator.exec(strippedUrl);
 
-    return await route.handler(req, params);
+    if (result === null) {
+      return new HttpResponse(400, `Invalid resource identifier: ${req.url}`);
+    }
+
+    return await route.handler(req, result.groups);
   }
   public register<T extends object>(controller: T) {
     const methodNames: (keyof T)[] = Object.getOwnPropertyNames(
@@ -131,7 +158,8 @@ export class HttpRouter implements IHttpRouter {
       const pathRegex = this.parseRegexFromPath(httpInfo.value.path);
 
       let route: Route = {
-        path: pathRegex,
+        validator: pathRegex,
+        path: this.parsePathValidator(httpInfo.value.path),
         handler: property.bind(controller),
       };
 
