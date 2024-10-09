@@ -1,48 +1,106 @@
 import { Socket } from "node:net";
+import { EventEmitter } from "node:events";
+import { randomUUID } from "node:crypto";
+import { DBRequest, DBResponse } from "./base.js";
 
 export default class DbClient {
   private connection: Socket;
+  private responseEmitter: EventEmitter = new EventEmitter();
 
   public async connect(host: string, port: number) {
     return new Promise<void>((resolve, reject) => {
       const client = new Socket();
       this.connection = client.connect(port, host);
 
-      this.connection.once("error", (err) => {
+      const onConnectionError = (err: Error) => {
         console.error("Connection error:", err);
         reject(err);
-      });
+      };
+
+      this.connection.once("error", onConnectionError);
 
       this.connection.once("connect", () => {
         console.log("Connected to server");
-        this.connection.removeAllListeners();
+        this.connection.removeListener("error", onConnectionError);
         resolve();
+      });
+
+      this.connection.on("data", (streamData) => {
+        const response = JSON.parse(streamData.toString());
+        this.responseEmitter.emit(response.id, response);
+      });
+
+      this.connection.on("error", (err) => {
+        console.error("DB server error:", err);
+        throw err;
       });
     });
   }
 
   public async hSet(key: string, value: unknown) {
     return await new Promise((resolve, reject) => {
-      this.connection.write(
-        JSON.stringify({ method: "hSet", key, value }),
-        (err) => {
-          if (err) {
-            reject(err);
-          }
+      const requestID = randomUUID();
+
+      const timeout = setTimeout(() => {
+        reject(`request ${requestID} timeout.`);
+        this.responseEmitter.removeAllListeners(request.id);
+      }, 3000);
+
+      const request: DBRequest = { method: "hSet", key, value, id: requestID };
+      this.connection.write(JSON.stringify(request), (err) => {
+        if (err) {
+          reject(err);
         }
-      );
-      this.connection.once("data", (data) => {
-        resolve(data);
+      });
+      this.responseEmitter.once(requestID, (response: DBResponse) => {
+        clearTimeout(timeout);
+        resolve(response);
       });
     });
   }
 
-  public hGet(key: string) {
-    // user:id
+  public async hGet(key: string): Promise<DBResponse> {
+    return await new Promise((resolve, reject) => {
+      const requestID = randomUUID();
+
+      const timeout = setTimeout(() => {
+        reject(`request ${requestID} timeout.`);
+        this.responseEmitter.removeAllListeners(request.id);
+      }, 3000);
+
+      const request: DBRequest = { method: "hGet", key, id: requestID };
+      this.connection.write(JSON.stringify(request), (err) => {
+        if (err) {
+          reject(err);
+        }
+      });
+      this.responseEmitter.once(requestID, (response: DBResponse) => {
+        clearTimeout(timeout);
+        resolve(response);
+      });
+    });
   }
 
-  public scan(key: string) {
-    // user:*
+  public async scan(key: string): Promise<DBResponse> {
+    return await new Promise((resolve, reject) => {
+      const requestID = randomUUID();
+
+      const timeout = setTimeout(() => {
+        reject(`request ${requestID} timeout.`);
+        this.responseEmitter.removeAllListeners(request.id);
+      }, 3000);
+
+      const request: DBRequest = { method: "scan", key, id: requestID };
+      this.connection.write(JSON.stringify(request), (err) => {
+        if (err) {
+          reject(err);
+        }
+      });
+      this.responseEmitter.once(requestID, (response: DBResponse) => {
+        clearTimeout(timeout);
+        resolve(response);
+      });
+    });
   }
 
   constructor() {}

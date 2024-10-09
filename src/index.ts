@@ -1,14 +1,15 @@
 import App from "./app.js";
 import UserController from "./controllers/user.controller.js";
-import DataBase from "./database/server.js";
-import UserRouter from "./routers/user.router.js";
+import DbClient from "./database/client.js";
+import DataBaseServer from "./database/server.js";
+import { HttpRouter } from "./routers/router.js";
 
-const app = new App();
-const db = new DataBase();
-
-const userRouter = new UserRouter("/api/users");
-userRouter.register(new UserController());
-app.registerRouter(userRouter);
-
+const db = new DataBaseServer();
 db.serve();
+const dbClient = new DbClient();
+await dbClient.connect("localhost", 4010);
+const userRouter = new HttpRouter("/api/users");
+userRouter.register<UserController>(new UserController(dbClient));
+const app = new App();
+app.registerRouter(userRouter);
 app.serve();

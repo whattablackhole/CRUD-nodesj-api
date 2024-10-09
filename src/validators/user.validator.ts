@@ -3,10 +3,12 @@ import { UserCreate } from "../schemas/user.schemas";
 
 export function isCreateUserValidator(obj: any): obj is UserCreate {
   const errors = [];
-
+  
+  // TODO: Make generic
+  
   if (!Object.hasOwn(obj, "age")) {
     errors.push({ field: "age", error: "is not defined" });
-  } else if (obj.age !== "number") {
+  } else if (typeof obj.age !== "number") {
     errors.push({ field: "age", error: "is not number" });
   }
 
