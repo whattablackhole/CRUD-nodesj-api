@@ -1,3 +1,5 @@
+import HttpResponse from "../http/response";
+
 export type Handler<T = any> = (...args: any) => Promise<T> | T;
 
 export interface IHttpRouter {
@@ -8,6 +10,6 @@ export interface IHttpRouter {
 }
 
 export interface Route {
-    path: RegExp,
-    handler: Handler,
+  path: RegExp;
+  handler: Handler<HttpResponse>;
 }

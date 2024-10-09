@@ -1,11 +1,15 @@
 import { IncomingMessage } from "node:http";
 import { HttpError } from "../errors/base.js";
 import { Handler, IHttpRouter, Route } from "./base.js";
+import HttpResponse from "../http/response.js";
 
 export class HttpRouter implements IHttpRouter {
   public readonly baseUrl: string;
 
-  protected routes = new Map<string, { path: RegExp; handler: Handler }[]>([
+  protected routes = new Map<
+    string,
+    { path: RegExp; handler: Handler<HttpResponse> }[]
+  >([
     ["GET", []],
     ["POST", []],
     ["DELETE", []],
@@ -96,11 +100,7 @@ export class HttpRouter implements IHttpRouter {
     const route = this.getRoute(req.method, strippedUrl);
 
     if (!route) {
-      // TODO: implement response type instead
-      throw new HttpError(
-        `Bad Request! No resource for provided path: ${req.url}\n`,
-        403
-      );
+      return new HttpResponse(400, `Invalid resource identifier: ${req.url}.`);
     }
 
     const params = route.path.exec(strippedUrl).groups;

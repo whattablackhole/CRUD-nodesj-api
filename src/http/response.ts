@@ -1,9 +1,11 @@
 export default class HttpResponse {
-    public data?: unknown;
-    public statusCode: number;
+  public data?: unknown;
+  public message?: string;
+  public statusCode: number;
 
-    constructor(statusCode: number, data?: unknown) {
-        this.data = data;
-        this.statusCode = statusCode;
-    }
+  constructor(statusCode: number, message?: string, data?: unknown) {
+    this.data = data;
+    this.message = message;
+    this.statusCode = statusCode;
+  }
 }

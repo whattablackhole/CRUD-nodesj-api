@@ -2,7 +2,7 @@ import { IncomingMessage } from "http";
 import { Validator } from "../validators/base.js";
 import { ValidationError } from "../errors/base.js";
 
-export  function httpMeta(method: string, path: string) {
+export function httpMeta(method: string, path: string) {
   return function (
     target: object,
     propertyKey: string,
@@ -19,7 +19,6 @@ export  function httpMeta(method: string, path: string) {
 
 export function httpController<T>(validate?: Validator<T>) {
   async function parseBody(request: IncomingMessage) {
-    console.log(request);
     return new Promise((resolve, reject) => {
       let body = "";
 
@@ -31,13 +30,11 @@ export function httpController<T>(validate?: Validator<T>) {
         try {
           const parsedBody = JSON.parse(body);
           validate(parsedBody);
-
           resolve(parsedBody);
         } catch (error) {
           if (error instanceof ValidationError) {
             reject(error);
           }
-          // TODO: fix error processing
           reject(new ValidationError("Error parsing JSON body", 400));
         }
       });

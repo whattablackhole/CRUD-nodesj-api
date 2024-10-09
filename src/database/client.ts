@@ -103,5 +103,54 @@ export default class DbClient {
     });
   }
 
+  public async delete(key: string): Promise<DBResponse> {
+    return await new Promise((resolve, reject) => {
+      const requestID = randomUUID();
+
+      const timeout = setTimeout(() => {
+        reject(`request ${requestID} timeout.`);
+        this.responseEmitter.removeAllListeners(request.id);
+      }, 3000);
+
+      const request: DBRequest = { method: "delete", key, id: requestID };
+      this.connection.write(JSON.stringify(request), (err) => {
+        if (err) {
+          reject(err);
+        }
+      });
+      this.responseEmitter.once(requestID, (response: DBResponse) => {
+        clearTimeout(timeout);
+        resolve(response);
+      });
+    });
+  }
+
+  public async update(key: string, value: unknown): Promise<DBResponse> {
+    return await new Promise((resolve, reject) => {
+      const requestID = randomUUID();
+
+      const timeout = setTimeout(() => {
+        reject(`request ${requestID} timeout.`);
+        this.responseEmitter.removeAllListeners(request.id);
+      }, 3000);
+
+      const request: DBRequest = {
+        method: "update",
+        key,
+        value,
+        id: requestID,
+      };
+      this.connection.write(JSON.stringify(request), (err) => {
+        if (err) {
+          reject(err);
+        }
+      });
+      this.responseEmitter.once(requestID, (response: DBResponse) => {
+        clearTimeout(timeout);
+        resolve(response);
+      });
+    });
+  }
+
   constructor() {}
 }

@@ -8,8 +8,6 @@ export default class DataBaseServer {
   public serve(port = 4010, host = "localhost") {
     const server = createServer((socket) => {
       socket.on("data", (data) => {
-        console.log("Received from client: " + data.toString());
-
         const request: DBRequest = JSON.parse(data.toString());
         const response: DBResponse = this.handleRequest(request);
 
@@ -37,6 +35,10 @@ export default class DataBaseServer {
         return this.hGet(request.key, request.id);
       case "scan":
         return this.scan(request.key, request.id);
+      case "delete":
+        return this.delete(request.key, request.id);
+      case "update":
+        return this.update(request.key, request.value, request.id);
       default:
         return {
           method: request.method,
@@ -98,6 +100,35 @@ export default class DataBaseServer {
         status: "success",
         id,
         data: object,
+      };
+    }
+  }
+
+  private delete(key: string, id: UUID): DBResponse {
+    const exists = this.storage.delete(key);
+    return {
+      method: "delete",
+      status: exists ? "success" : "failure",
+      id,
+      data: null,
+    };
+  }
+
+  private update(key: string, value: unknown, id: UUID): DBResponse {
+    if (!this.storage.has(key)) {
+      return {
+        method: "update",
+        status: "failure",
+        id,
+        data: null,
+      };
+    } else {
+      this.storage.set(key, value);
+      return {
+        method: "update",
+        status: "success",
+        id,
+        data: value,
       };
     }
   }
