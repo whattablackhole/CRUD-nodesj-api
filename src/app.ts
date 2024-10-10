@@ -1,10 +1,11 @@
-import { createServer, ServerResponse } from "http";
+import { createServer, Server } from "http";
 import { HttpRouter } from "./routers/router.js";
 import { HttpError } from "./errors/base.js";
 import HttpResponse from "./http/response.js";
 
 export default class App {
   private routers: HttpRouter[] = [];
+  private server: Server;
 
   public async serve(port = 4000, host = "localhost") {
     const server = createServer(async (req, res) => {
@@ -41,6 +42,20 @@ export default class App {
 
     server.listen(port, host, () => {
       console.log(`Server is running at http://localhost:${port}/`);
+    });
+    this.server = server;
+  }
+
+  public async stop() {
+    return new Promise<void>((res, rej) => {
+      this.server.close((err) => {
+        if (err) {
+          console.debug(err);
+          return rej(err);
+        }
+
+        res();
+      });
     });
   }
 

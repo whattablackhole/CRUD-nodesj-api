@@ -1,15 +1,11 @@
 import { IncomingMessage } from "node:http";
-import { HttpError } from "../errors/base.js";
 import { Handler, IHttpRouter, Route } from "./base.js";
 import HttpResponse from "../http/response.js";
 
 export class HttpRouter implements IHttpRouter {
   public readonly baseUrl: string;
 
-  protected routes = new Map<
-    string,
-    Route[]
-  >([
+  protected routes = new Map<string, Route[]>([
     ["GET", []],
     ["POST", []],
     ["DELETE", []],
@@ -54,7 +50,7 @@ export class HttpRouter implements IHttpRouter {
   }
 
   protected getRoute(method: string, path: string): Route {
-    return this.routes.get(method).find((o) => o.path.test(path));
+    return this.routes.get(method)?.find((o) => o.path.test(path));
   }
 
   private getRegexByKeyWord(key: string) {
@@ -123,13 +119,19 @@ export class HttpRouter implements IHttpRouter {
     const route = this.getRoute(req.method, strippedUrl);
 
     if (!route) {
-      return new HttpResponse(404, `No resource for provided path: ${req.url}`);
+      return new HttpResponse(
+        404,
+        `No resource for provided path: ${req.url}, method: ${req.method}`
+      );
     }
 
     const result = route.validator.exec(strippedUrl);
 
     if (result === null) {
-      return new HttpResponse(400, `Invalid resource identifier: ${req.url}`);
+      return new HttpResponse(
+        400,
+        `Invalid resource identifier: ${strippedUrl}`
+      );
     }
 
     return await route.handler(req, result.groups);

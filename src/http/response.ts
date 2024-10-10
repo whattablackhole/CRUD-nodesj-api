@@ -1,5 +1,5 @@
 export default class HttpResponse {
-  public data?: unknown;
+  public data?: any;
   public message?: string;
   public statusCode: number;
 

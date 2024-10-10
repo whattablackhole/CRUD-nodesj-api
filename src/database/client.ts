@@ -7,6 +7,10 @@ export default class DbClient {
   private connection: Socket;
   private responseEmitter: EventEmitter = new EventEmitter();
 
+  public disconnect() {
+    this.connection.destroy();
+  }
+
   public async connect(host: string, port: number) {
     return new Promise<void>((resolve, reject) => {
       const client = new Socket();
@@ -151,6 +155,4 @@ export default class DbClient {
       });
     });
   }
-
-  constructor() {}
 }

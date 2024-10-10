@@ -3,13 +3,25 @@ import UserController from "./controllers/user.controller.js";
 import DbClient from "./database/client.js";
 import DataBaseServer from "./database/server.js";
 import { HttpRouter } from "./routers/router.js";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const db = new DataBaseServer();
-db.serve();
+
+db.serve(Number.parseInt(process.env.DATABASE_SERVER_PORT));
+
 const dbClient = new DbClient();
-await dbClient.connect("localhost", 4010);
+
+dbClient.connect(
+  "localhost",
+  Number.parseInt(process.env.DATABASE_SERVER_PORT)
+);
+
 const userRouter = new HttpRouter("/api/users");
 userRouter.register<UserController>(new UserController(dbClient));
 const app = new App();
 app.registerRouter(userRouter);
-app.serve();
+app.serve(Number.parseInt(process.env.APP_SERVER_PORT));
+
+export { app, db, dbClient };

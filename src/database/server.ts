@@ -1,9 +1,11 @@
 import { UUID } from "node:crypto";
-import { createServer } from "node:net";
+import { createServer, Server, Socket } from "node:net";
 import { DBRequest, DBResponse } from "./base.js";
 
 export default class DataBaseServer {
   private storage = new Map();
+  private server: Server;
+  private connections = new Set<Socket>();
 
   public serve(port = 4010, host = "localhost") {
     const server = createServer((socket) => {
@@ -23,9 +25,21 @@ export default class DataBaseServer {
       });
     });
 
+    server.on("error", (err) => {
+      console.error("Server error:", err);
+    });
+
+    server.on("connection", (socket) => {
+      this.connections.add(socket);
+
+      socket.on("close", () => this.connections.delete(socket));
+    });
+
     server.listen(port, host, () => {
       console.log(`Database server listening on port ${port}`);
     });
+
+    this.server = server;
   }
   private handleRequest(request: DBRequest): DBResponse {
     switch (request.method) {
@@ -131,5 +145,21 @@ export default class DataBaseServer {
         data: value,
       };
     }
+  }
+
+  public async stop() {
+    console.log("Shutting down the server...");
+    return new Promise<void>((res, rej) => {
+      this.connections.forEach((socket) => socket.destroy());
+  
+      this.server.close((err) => {
+        if (err) {
+          console.debug(err);
+          return rej(err);
+        }
+  
+        res();
+      });
+    });
   }
 }
