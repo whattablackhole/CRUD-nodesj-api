@@ -7,17 +7,25 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.tsx?$/,
+        test: /\.ts?$/,
         use: "ts-loader",
         exclude: /node_modules/,
       },
     ],
   },
+  experiments: {
+    outputModule: true,
+  },
   resolve: {
-    extensions: [".tsx", ".ts", ".js"],
+    extensionAlias: {
+      '.js': ['.ts'],
+    },
+    extensions: [".ts"],
   },
   output: {
     filename: "server.js",
     path: path.resolve(__dirname, "dist"),
+    module: true,
+    chunkFormat: "module"
   },
 };

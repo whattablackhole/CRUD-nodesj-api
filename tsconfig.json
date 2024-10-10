@@ -6,8 +6,6 @@
       "removeComments": true,
       "preserveConstEnums": true,
       "experimentalDecorators": true,
-      "sourceMap": true,
-      "declaration": true,
       "esModuleInterop": true,
       "moduleResolution": "node",
       "allowSyntheticDefaultImports": true,

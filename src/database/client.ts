@@ -24,7 +24,7 @@ export default class DbClient {
       this.connection.once("error", onConnectionError);
 
       this.connection.once("connect", () => {
-        console.log("Connected to server");
+        console.log("Connected to db server");
         this.connection.removeListener("error", onConnectionError);
         resolve();
       });
@@ -35,7 +35,7 @@ export default class DbClient {
       });
 
       this.connection.on("error", (err) => {
-        console.error("DB server error:", err);
+        console.error("DB client error:", err);
         throw err;
       });
     });

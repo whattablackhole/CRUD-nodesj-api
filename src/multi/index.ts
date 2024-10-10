@@ -1,42 +1,78 @@
-import { spawn } from "node:child_process";
-import path from "node:path";
+import cluster from "cluster";
+import App from "../app.js";
+import http from "node:http";
+import { availableParallelism } from "os";
+import DataBaseServer from "../database/server.js";
+import DbClient from "../database/client.js";
+import { HttpRouter } from "../routers/router.js";
+import UserController from "../controllers/user.controller.js";
+import dotenv from "dotenv";
 
-const dirname = import.meta.dirname;
+dotenv.config();
 
-const dbProcess = spawn("node", [
-  "--no-warnings=ExperimentalWarning",
-  "--loader",
-  "ts-node/esm",
-  path.resolve(dirname, "./start-db.ts"),
-]);
+const numCPUs = availableParallelism();
+const basePort = Number.parseInt(process.env.APP_SERVER_PORT);
+const workerBasePort = basePort + 1;
+const workerAmount = numCPUs - 1;
 
-dbProcess.stdout.on("data", (data) => {
-  console.log(`DB server stdout: ${data}`);
-});
+if (cluster.isPrimary) {
+  for (let i = 0; i < workerAmount; i++) {
+    cluster.fork({ WORKER_PORT: workerBasePort + i });
+  }
 
-dbProcess.stderr.on("data", (data) => {
-  console.error(`DB server stderr: ${data}`);
-});
+  const db = new DataBaseServer();
 
-dbProcess.on("close", (code) => {
-  console.log(`DB server exited with code ${code}`);
-});
+  db.serve(Number.parseInt(process.env.DATABASE_SERVER_PORT));
 
-const clusterProcess = spawn("node", [
-  "--no-warnings=ExperimentalWarning",
-  "--loader",
-  "ts-node/esm",
-  path.resolve(dirname, "./cluster.ts"),
-]);
+  let workerIndex = 0;
 
-clusterProcess.stdout.on("data", (data) => {
-  console.log(`Clustered app stdout: ${data}`);
-});
+  const loadBalancer = http.createServer((req, res) => {
+    const workerPort = (workerIndex % workerAmount) + workerBasePort;
+    workerIndex++;
 
-clusterProcess.stderr.on("data", (data) => {
-  console.error(`Clustered app stderr: ${data}`);
-});
+    const options: http.RequestOptions = {
+      hostname: "localhost",
+      port: workerPort,
+      path: req.url,
+      method: req.method,
+      headers: req.headers,
+    };
 
-clusterProcess.on("close", (code) => {
-  console.log(`Clustered app exited with code ${code}`);
-});
+    console.log(`Proxying request to http://localhost:${workerPort}`);
+
+    const proxyRequest = http.request(options, (proxyRes) => {
+      res.writeHead(proxyRes.statusCode, proxyRes.headers);
+      proxyRes.pipe(res, { end: true });
+    });
+
+    req.pipe(proxyRequest, { end: true });
+
+    proxyRequest.on("error", (err) => {
+      console.error(`Error with proxy request: ${err.message}`);
+      res.writeHead(502);
+      res.end("Bad Gateway");
+    });
+  });
+
+  loadBalancer.listen(basePort, () => {
+    console.log(`Load balancer is listening on http://localhost:${basePort}/`);
+  });
+
+  cluster.on("exit", (worker) => {
+    console.log(`Worker ${worker.process.pid} died. Restarting...`);
+    cluster.fork({ WORKER_PORT: worker.process.spawnargs[0] });
+  });
+} else {
+  const appPort = Number.parseInt(process.env.WORKER_PORT);
+  const dbClient = new DbClient();
+
+  dbClient.connect(
+    "localhost",
+    Number.parseInt(process.env.DATABASE_SERVER_PORT)
+  );
+  const userRouter = new HttpRouter("/api/users");
+  userRouter.register<UserController>(new UserController(dbClient));
+  const app = new App();
+  app.registerRouter(userRouter);
+  app.serve(appPort);
+}
